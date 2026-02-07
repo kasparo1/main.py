@@ -17,8 +17,8 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 
 # Chiavi API da Environment Variables di Render
-API_KEY = os.getenv("BINANCE_API_KEY")
-API_SECRET = os.getenv("BINANCE_API_SECRET")
+API_KEY = os.getenv("kO0t90VgEowDKCADG7vhHTSgFOn3jRMKcYh3c5S3wPH586Qdaz33dwIRLGKCMk12")
+API_SECRET = os.getenv("xZYYAhg2Qzj0kUWat1RC7I8qHjabi68E03aRU0mjZ03RBZs9QNwhi5WMoyEqjR3H")
 
 if not API_KEY or not API_SECRET:
     print("ERRORE: Manca BINANCE_API_KEY o BINANCE_API_SECRET su Render!")
@@ -83,3 +83,4 @@ if __name__ == "__main__":
     
     # Loop principale bot
     bot_loop()
+
