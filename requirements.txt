@@ -1,7 +1,11 @@
-python-binance
-flask
-gunicorn
+python-binance==1.0.19
+flask==3.0.3
+gunicorn==22.0.0
 numpy==1.24.0
+pandas==2.2.3
+ta==0.11.0
+
+
 
 
 
