@@ -119,9 +119,8 @@ def rsi_ema_signals():
     ema_slow
 
         
-                
-        ema_fast = ta.trend.EMAIndicator(closes, window=9).ema_indicator().iloc[-1]
-        ema_slow = ta.trend.EMAIndicator(closes, window=21).ema_indicator().iloc[-1]
+    ema_fast = ta.trend.EMAIndicator(closes, window=9).ema_indicator().iloc[-1]
+    ema_slow = ta.trend.EMAIndicator(closes, window=21).ema_indicator().iloc[-1]
         
         profit_pct = ((price - bought_price) / bought_price * 100) if bought_price > 0 else 0
         
@@ -185,6 +184,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
