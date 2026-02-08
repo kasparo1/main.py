@@ -110,7 +110,7 @@ def rsi_ema_signals():
     global holding_btc
     try:
         # Dati storici 1h per indicatori stabili
-        klines = client.get_klines(SYMBOL, Client.KLINE_INTERVAL_1HOUR, limit=50)
+        klines = client.futures_klines(symbol=SYMBOL, interval=Client.KLINE_INTERVAL_1HOUR, limit=50)
         closes = pd.Series([float(k[4]) for k in klines])
         
         price = get_price()
@@ -180,6 +180,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
