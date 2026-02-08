@@ -1,3 +1,7 @@
+python-binance
 flask
 gunicorn
-python-binance
+TA-Lib
+numpy
+
+
