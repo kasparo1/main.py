@@ -1,9 +1,11 @@
+python-binance
 flask
 gunicorn
 numpy
 pandas
-binance-connector
 ta
+
+
 
 
 
