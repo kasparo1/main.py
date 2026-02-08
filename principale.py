@@ -1,10 +1,12 @@
 import os
 import time
-import numpy as np  # Solo numpy!
 from threading import Thread
 from flask import Flask
 from binance.client import Client
 from binance.enums import SIDE_BUY, SIDE_SELL, ORDER_TYPE_MARKET
+
+app
+
 
 app = Flask(__name__)
 
@@ -94,6 +96,7 @@ if __name__ == "__main__":
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     bot_loop()
+
 
 
 
