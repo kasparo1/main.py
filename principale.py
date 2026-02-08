@@ -1,99 +1,187 @@
+# principale.py - BOT TRADING RSI+EMA Binance Testnet 24/24 su Render
 import os
 import time
+import json
+import logging
+import pandas as pd
 import numpy as np
 from threading import Thread
-from flask
+from flask import Flask
+from binance.client import Client
+from binance.enums import SIDE_BUY, SIDE_SELL, ORDER_TYPE_MARKET
+import ta
 
-
+# Setup logging per Render
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-@app.route("/")
-def index():
-    return "🚀 Bot TRADING RSI+EMA - LIVE!"
+# Config
+SYMBOL = "BTCUSDT"
+ORDER_USDT = 5.0  # Quantità USDT per trade
+SLEEP_SECONDS = 60
+STATE_FILE = 'trading_state.json'
 
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
-# API Keys
+# API Keys da Render Environment Variables
 API_KEY = os.getenv("BINANCE_API_KEY")
 API_SECRET = os.getenv("BINANCE_API_SECRET")
+
+if not API_KEY or not API_SECRET:
+    logger.error("❌ BINANCE_API_KEY e BINANCE_API_SECRET mancanti!")
+    exit(1)
+
 client = Client(API_KEY, API_SECRET, testnet=True)
+logger.info("✅ Client Binance Testnet inizializzato")
 
-SYMBOL = "BTCUSDT"
-ORDER_USDT = 5.0
-SLEEP_SECONDS = 60
-
+# Stato globale persistente
 holding_btc = False
+bought_price = 0.0
+
+def load_state():
+    global holding_btc, bought_price
+    try:
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, 'r') as f:
+                state = json.load(f)
+                holding_btc = state.get('holding', False)
+                bought_price = state.get('bought_price', 0.0)
+            logger.info(f"📂 Stato caricato: holding={holding_btc}, price={bought_price}")
+    except Exception as e:
+        logger.warning(f"⚠️ Errore caricamento stato: {e}")
+
+def save_state():
+    state = {'holding': holding_btc, 'bought_price': bought_price}
+    try:
+        with open(STATE_FILE, 'w') as f:
+            json.dump(state, f)
+        logger.info("💾 Stato salvato")
+    except Exception as e:
+        logger.error(f"❌ Errore salvataggio stato: {e}")
 
 def get_price():
     return float(client.get_symbol_ticker(symbol=SYMBOL)["price"])
 
 def calc_quantity(usdt_amount):
-    return round(usdt_amount / get_price(), 6)
+    price = get_price()
+    qty = round(usdt_amount / price, 6)
+    logger.info(f"💰 Qty calcolata: {qty:.6f} BTC per {usdt_amount} USDT @ {price}")
+    return qty
 
 def buy_testnet(usdt_amount):
-    global holding_btc
-    qty = calc_quantity(usdt_amount)
-    print(f"🟢 BUY {qty:.6f} BTC")
-    order = client.create_order(symbol=SYMBOL, side=SIDE_BUY, 
-                               type=ORDER_TYPE_MARKET, quantity=str(qty))
-    print(f"✅ BUY #{order['orderId']}")
-    holding_btc = True
+    global holding_btc, bought_price
+    try:
+        qty = calc_quantity(usdt_amount)
+        order = client.create_order(
+            symbol=SYMBOL,
+            side=SIDE_BUY,
+            type=ORDER_TYPE_MARKET,
+            quoteOrderQty=str(usdt_amount)  # Più preciso per USDT
+        )
+        bought_price = get_price()
+        holding_btc = True
+        save_state()
+        logger.info(f"🟢 BUY #{order['orderId']} - {qty:.6f} BTC @ {bought_price:.2f}")
+    except Exception as e:
+        logger.error(f"❌ Errore BUY: {e}")
 
 def sell_all_btc():
-    global holding_btc
-    balance = float(client.get_asset_balance(asset='BTC')['free'])
-    if balance > 0.0001:
-        print(f"🔴 SELL {balance:.6f} BTC")
-        order = client.create_order(symbol=SYMBOL, side=SIDE_SELL, 
-                                   type=ORDER_TYPE_MARKET, quantity=str(balance))
-        print(f"✅ SELL #{order['orderId']}")
-        holding_btc = False
-
-def simple_rsi(prices, period=14):
-    deltas = np.diff(prices)
-    gains = np.mean(deltas[-period:][deltas[-period:] > 0]) if len(deltas) >= period else 0
-    losses = abs(np.mean(deltas[-period:][deltas[-period:] < 0])) if len(deltas) >= period else 0
-    rs = gains / losses if losses != 0 else 100
-    return 100 - (100 / (1 + rs))
+    global holding_btc, bought_price
+    try:
+        balance = float(client.get_asset_balance(asset='BTC')['free'])
+        if balance > 0.0001:
+            order = client.create_order(
+                symbol=SYMBOL,
+                side=SIDE_SELL,
+                type=ORDER_TYPE_MARKET,
+                quantity=str(balance)
+            )
+            profit_pct = ((get_price() - bought_price) / bought_price * 100) if bought_price > 0 else 0
+            holding_btc = False
+            bought_price = 0.0
+            save_state()
+            logger.info(f"🔴 SELL #{order['orderId']} - {balance:.6f} BTC @ {get_price():.2f} | P&L: {profit_pct:+.2f}%")
+        else:
+            logger.warning("⚠️ Balance BTC troppo basso per vendere")
+    except Exception as e:
+        logger.error(f"❌ Errore SELL: {e}")
 
 def rsi_ema_signals():
     global holding_btc
-    klines = client.get_klines(SYMBOL, Client.KLINE_INTERVAL_5MINUTE, limit=50)
-    closes = np.array([float(k[4]) for k in klines])
-    price = get_price()
-    
-    rsi = simple_rsi(closes)
-    ema_fast = np.mean(closes[-9:])
-    ema_slow = np.mean(closes[-21:])
-    
-    print(f"📊 {price:.2f}USDT | RSI:{rsi:.1f} | EMA9:{ema_fast:.2f} | EMA21:{ema_slow:.2f} | Hold:{holding_btc}")
-    
-    # BUY: RSI basso + EMA up
-    if rsi < 40 and ema_fast > ema_slow and not holding_btc:
-        buy_testnet(ORDER_USDT)
-    
-    # SELL: RSI alto + EMA down
-    elif rsi > 60 and ema_fast < ema_slow and holding_btc:
-        sell_all_btc()
+    try:
+        # Dati storici 1h per indicatori stabili
+        klines = client.get_klines(SYMBOL, Client.KLINE_INTERVAL_1HOUR, limit=50)
+        closes = pd.Series([float(k[4]) for k in klines])
+        
+        price = get_price()
+        rsi = ta.momentum.RSIIndicator(closes, window=14).rsi().iloc[-1]
+        ema_fast = ta.trend.EMAIndicator(closes, window=9).ema_indicator().iloc[-1]
+        ema_slow = ta.trend.EMAIndicator(closes, window=21).ema_indicator().iloc[-1]
+        
+        profit_pct = ((price - bought_price) / bought_price * 100) if bought_price > 0 else 0
+        
+        logger.info(f"📊 {price:.2f}USDT | RSI:{rsi:.1f} | EMA9:{ema_fast:.2f} | EMA21:{ema_slow:.2f} | Hold:{holding_btc} | P&L:{profit_pct:+.2f}%")
+        
+        # STOP LOSS 5%
+        if holding_btc and profit_pct < -5:
+            logger.warning("🛑 STOP LOSS attivato!")
+            sell_all_btc()
+            return
+        
+        # BUY: RSI oversold + EMA bullish
+        if rsi < 40 and ema_fast > ema_slow and not holding_btc:
+            logger.info("🟢 SEGNALE BUY!")
+            buy_testnet(ORDER_USDT)
+        
+        # SELL: RSI overbought + EMA bearish O profitto >3%
+        elif holding_btc and ( (rsi > 60 and ema_fast < ema_slow) or profit_pct > 3 ):
+            logger.info("🔴 SEGNALE SELL!")
+            sell_all_btc()
+            
+    except Exception as e:
+        logger.error(f"❌ Errore indicatori: {e}")
+
+@app.route("/")
+def index():
+    return "🚀 Bot TRADING RSI+EMA - LIVE su Binance Testnet!"
+
+@app.route("/health")
+def health():
+    return {
+        "status": "alive",
+        "symbol": SYMBOL,
+        "holding": holding_btc,
+        "bought_price": bought_price,
+        "price": get_price()
+    }
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 def bot_loop():
-    print("🚀 Bot TRADING H24 - RSI+EMA!")
+    logger.info("🚀 Bot TRADING H24 - RSI+EMA su TESTNET!")
+    load_state()
+    
     while True:
         try:
             rsi_ema_signals()
             time.sleep(SLEEP_SECONDS)
+        except KeyboardInterrupt:
+            logger.info("⏹️ Bot fermato dall'utente")
+            save_state()
+            break
         except Exception as e:
-            print(f"❌ {e}")
+            logger.error(f"❌ Errore loop: {e}")
             time.sleep(30)
 
 if __name__ == "__main__":
-    print("🔥 Inizializzo BOT TRADING...")
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
+    time.sleep(2)  # Attendi Flask
     bot_loop()
+
+
 
 
 
