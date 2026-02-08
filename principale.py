@@ -23,16 +23,21 @@ ORDER_USDT = 5.0  # Quantità USDT per trade
 SLEEP_SECONDS = 60
 STATE_FILE = 'trading_state.json'
 
-# API Keys da Render Environment Variables
-API_KEY = os.getenv("BINANCE_API_KEY")
-API_SECRET = os.getenv("BINANCE_API_SECRET")
+# NUOVO - Anti-block + continua comunque:
+API_KEY = os.getenv("BINANCE_API_KEY", "")
+API_SECRET = os.getenv("BINANCE_API_SECRET", "")
 
-if not API_KEY or not API_SECRET:
-    logger.error("❌ BINANCE_API_KEY e BINANCE_API_SECRET mancanti!")
-    exit(1)
-
-client = Client(API_KEY, API_SECRET, testnet=True)
-logger.info("✅ Client Binance Testnet inizializzato")
+if API_KEY and API_SECRET:
+    try:
+        client = Client(API_KEY, API_SECRET, testnet=True)
+        logger.info("✅ Client Binance Testnet OK")
+    except Exception as e:
+        logger.warning(f"⚠️ Binance warning: {e}")
+        logger.info("🔄 Continuo con dati pubblici...")
+        client = Client("", "", testnet=True)  # Public data only
+else:
+    logger.warning("⚠️ API Keys mancanti - uso dati pubblici")
+    client = Client("", "", testnet=True)
 
 # Stato globale persistente
 holding_btc = False
@@ -180,6 +185,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
