@@ -1,4 +1,5 @@
 # principale.py - BOT TRADING RSI+EMA Binance Testnet 24/24 su Render
+import ccxt
 import os
 import time
 import json
@@ -7,7 +8,6 @@ import pandas as pd
 import numpy as np
 from threading import Thread
 from flask import Flask
-from binance.client import Client
 from binance.enums import SIDE_BUY, SIDE_SELL, ORDER_TYPE_MARKET
 import ta
 
@@ -27,17 +27,12 @@ STATE_FILE = 'trading_state.json'
 API_KEY = os.getenv("BINANCE_API_KEY", "")
 API_SECRET = os.getenv("BINANCE_API_SECRET", "")
 
-if API_KEY and API_SECRET:
-    try:
-        client = Client(API_KEY, API_SECRET, testnet=True)
-        logger.info("✅ Client Binance Testnet OK")
-    except Exception as e:
-        logger.warning(f"⚠️ Binance warning: {e}")
-        logger.info("🔄 Continuo con dati pubblici...")
-        client = Client("", "", testnet=True)  # Public data only
-else:
-    logger.warning("⚠️ API Keys mancanti - uso dati pubblici")
-    client = Client("", "", testnet=True)
+import ccxt
+exchange = ccxt.binance({
+    'sandbox': True,
+    'options': {'defaultType': 'spot'}
+})
+logger.info("✅ CCXT Binance Testnet OK")
 
 # Stato globale persistente
 holding_btc = False
@@ -65,7 +60,8 @@ def save_state():
         logger.error(f"❌ Errore salvataggio stato: {e}")
 
 def get_price():
-    return float(client.get_symbol_ticker(symbol=SYMBOL)["price"])
+    ticker = exchange.fetch_ticker('BTC/USDT')
+    return ticker['last']
 
 def calc_quantity(usdt_amount):
     price = get_price()
@@ -114,12 +110,13 @@ def sell_all_btc():
 def rsi_ema_signals():
     global holding_btc
     try:
-        # Dati storici 1h per indicatori stabili
-        klines = client.get_klines(SYMBOL, Client.KLINE_INTERVAL_1HOUR, limit=50)
-        closes = pd.Series([float(k[4]) for k in klines])
-        
+        klines = exchange.fetch_ohlcv('BTC/USDT', '1h', limit=50)
+        closes = [k[4] for k in klines]
+        # TUA logica RSI/EMA identica ↓
         price = get_price()
-        rsi = ta.momentum.RSIIndicator(closes, window=14).rsi().iloc[-1]
+        rsi = simple_rsi(closes)
+        
+                
         ema_fast = ta.trend.EMAIndicator(closes, window=9).ema_indicator().iloc[-1]
         ema_slow = ta.trend.EMAIndicator(closes, window=21).ema_indicator().iloc[-1]
         
@@ -185,6 +182,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
