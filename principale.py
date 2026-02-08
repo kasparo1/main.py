@@ -1,18 +1,9 @@
 import os
 import time
+import numpy as np
 from threading import Thread
-from flask import Flask
-from binance.client import Client
-from binance.enums import SIDE_BUY, SIDE_SELL, ORDER_TYPE_MARKET
+from flask
 
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "🚀 Bot Binance TRADING H24 - LIVE!"
-
-def run_flask():
-    port
 
 
 app = Flask(__name__)
@@ -103,6 +94,7 @@ if __name__ == "__main__":
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     bot_loop()
+
 
 
 
