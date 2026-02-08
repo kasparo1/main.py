@@ -116,7 +116,7 @@ def rsi_ema_signals():
     price = get_price()
     rsi = simple_rsi(closes)
     ema_fast = ta.trend.EMAIndicator(pd.Series(closes), window=9).ema_indicator().iloc[-1]
-        ema_slow
+    ema_slow
 
         
                 
@@ -187,6 +187,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
