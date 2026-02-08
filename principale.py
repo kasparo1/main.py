@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 from threading import Thread
 from flask import Flask
-from binance.enums import SIDE_BUY, SIDE_SELL, ORDER_TYPE_MARKET
 import ta
 
 # Setup logging per Render
@@ -107,14 +106,17 @@ def sell_all_btc():
     except Exception as e:
         logger.error(f"❌ Errore SELL: {e}")
 
+def get_price():
+    ticker = exchange.fetch_ticker('BTC/USDT')
+    return ticker['last']
+
 def rsi_ema_signals():
-    global holding_btc
-    try:
-        klines = exchange.fetch_ohlcv('BTC/USDT', '1h', limit=50)
-        closes = [k[4] for k in klines]
-        # TUA logica RSI/EMA identica ↓
-        price = get_price()
-        rsi = simple_rsi(closes)
+    klines = exchange.fetch_ohlcv('BTC/USDT', '1h', limit=50)
+    closes = [k[4] for k in klines]
+    price = get_price()
+    rsi = simple_rsi(closes)
+    ema_fast
+
         
                 
         ema_fast = ta.trend.EMAIndicator(closes, window=9).ema_indicator().iloc[-1]
@@ -182,6 +184,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
