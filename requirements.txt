@@ -1,7 +1,8 @@
 python-binance
 flask
 gunicorn
-TA-Lib
-numpy
+TA-Lib==0.4.28
+numpy==1.26.4
+
 
 
