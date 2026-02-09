@@ -1,20 +1,20 @@
-# principale.py - BOT TRADING RSI+EMA Binance Testnet 24/24 su Render
-import ccxt
 import os
 import time
-import json
-import logging
-import pandas as pd
 import numpy as np
 from threading import Thread
 from flask import Flask
-import ta
+import ccxt
+import logging
+import pandas as pd
 
-# Setup logging per Render
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+SYMBOL = "BTCUSDT"
+SLEEP_SECONDS
+
 
 # Config
 SYMBOL = "BTCUSDT"
@@ -184,6 +184,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
