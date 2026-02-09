@@ -124,7 +124,7 @@ def rsi_ema_signals():
         
     profit_pct = ((price - bought_price) / bought_price * 100) if bought_price > 0 else 0
         
-        logger.info(f"📊 {price:.2f}USDT | RSI:{rsi:.1f} | EMA9:{ema_fast:.2f} | EMA21:{ema_slow:.2f} | Hold:{holding_btc} | P&L:{profit_pct:+.2f}%")
+    logger.info(f"📊 {price:.2f}USDT | RSI:{rsi:.1f} | EMA9:{ema_fast:.2f} | EMA21:{ema_slow:.2f} | Hold:{holding_btc} | P&L:{profit_pct:+.2f}%")
         
         # STOP LOSS 5%
         if holding_btc and profit_pct < -5:
@@ -184,6 +184,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)  # Attendi Flask
     bot_loop()
+
 
 
 
