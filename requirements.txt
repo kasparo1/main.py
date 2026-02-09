@@ -1,8 +1,9 @@
 flask
 gunicorn
 numpy
-pandas
 ccxt
+
+
 
 
 
