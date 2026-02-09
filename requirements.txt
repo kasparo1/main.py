@@ -1,9 +1,10 @@
-ccxt
 flask
 gunicorn
 numpy
 pandas
-ta
+ccxt
+
+
 
 
 
