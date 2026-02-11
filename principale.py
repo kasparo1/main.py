@@ -134,11 +134,11 @@ def rsi_ema_signals():
             sell_all_btc()
             return
         
-        if rsi < 40 and ema_fast > ema_slow and not holding_btc:
+        if rsi < 45 and ema_fast > ema_slow and not holding_btc:
             logger.info("🟢 SEGNALE BUY!")
             buy_testnet(ORDER_USDT)
         
-        elif holding_btc and ((rsi > 60 and ema_fast < ema_slow) or profit_pct > 3):
+        elif holding_btc and ((rsi > 55 and ema_fast < ema_slow) or profit_pct > 3):
             logger.info("🔴 SEGNALE SELL!")
             sell_all_btc()
             
@@ -188,6 +188,7 @@ if __name__ == "__main__":
     flask_thread.start()
     time.sleep(2)
     bot_loop()
+
 
 
 
